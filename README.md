@@ -50,6 +50,19 @@ FWD-запись с тем же именем, что в `dns/vpn.txt`, пере�
 
 `dns.rsc` ничего не меняет, если на роутере нет forwarder'а `VPN`.
 
+Кроме доменов, `dns.rsc` задаёт общие настройки DNS и блок-листы рекламы
+(константы `DNS_SETTINGS` и `ADLISTS` в `scripts/build_dns_rsc.py`):
+
+```routeros
+/ip dns set address-list-extra-time=1d allow-remote-requests=yes cache-size=24576KiB
+/ip dns adlist add url=https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts ssl-verify=no
+/ip dns adlist add url=https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt ssl-verify=no
+```
+
+Adlist добавляется, только если такого URL на роутере ещё нет, и скриптом не удаляется.
+`allow-remote-requests=yes` делает роутер DNS-сервером: закройте 53/udp и 53/tcp
+с WAN в firewall, иначе он станет открытым резолвером.
+
 ## Установка на MikroTik
 
 1. Создайте fine-grained токен GitHub: только репозиторий `MeJIuFaRo/proxy_rules`,

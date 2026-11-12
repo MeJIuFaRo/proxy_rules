@@ -2,6 +2,9 @@
 # Entries with comment prefix "proxy_rules: " are owned by this script;
 # a FWD entry with the same name is taken over, other entries are kept.
 :if ([:len [/ip dns forwarders find where name="VPN"]] = 0) do={ :error "proxy_rules: DNS forwarder VPN not found" }
+/ip dns set address-list-extra-time=1d allow-remote-requests=yes cache-size=24576KiB
+:if ([:len [/ip dns adlist find where url="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"]] = 0) do={ /ip dns adlist add url="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" ssl-verify=no }
+:if ([:len [/ip dns adlist find where url="https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt"]] = 0) do={ /ip dns adlist add url="https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt" ssl-verify=no }
 /ip dns static set [find where type=FWD comment~"^proxy_rules: "] comment="proxy_rules: stale"
 :if ([:len [/ip dns static find where type=FWD name="claude.ai"]] = 0) do={ /ip dns static add name="claude.ai" type=FWD forward-to=VPN match-subdomain=yes address-list=VPN disabled=no comment="proxy_rules: dns" } else={ /ip dns static set [find where type=FWD name="claude.ai"] type=FWD forward-to=VPN match-subdomain=yes address-list=VPN disabled=no comment="proxy_rules: dns" }
 :if ([:len [/ip dns static find where type=FWD name="api.aws"]] = 0) do={ /ip dns static add name="api.aws" type=FWD forward-to=VPN match-subdomain=yes address-list=VPN disabled=no comment="proxy_rules: dns" } else={ /ip dns static set [find where type=FWD name="api.aws"] type=FWD forward-to=VPN match-subdomain=yes address-list=VPN disabled=no comment="proxy_rules: dns" }

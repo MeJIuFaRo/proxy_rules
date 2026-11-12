@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Build lists/dns.rsc from dns/vpn.txt.
 
+It also applies /ip dns settings and adds ad-block lists (/ip dns adlist)
+that are not on the router yet; adlists are never removed by this script.
+
 Every domain becomes a MikroTik static DNS entry:
   /ip dns static add name=<domain> type=FWD forward-to=VPN
       match-subdomain=yes address-list=VPN
@@ -19,6 +22,19 @@ FORWARDER = "VPN"
 ADDRESS_LIST = "VPN"
 COMMENT = "proxy_rules: dns"
 STALE_COMMENT = "proxy_rules: stale"
+
+# /ip dns set ...
+DNS_SETTINGS = {
+    "address-list-extra-time": "1d",
+    "allow-remote-requests": "yes",
+    "cache-size": "24576KiB",
+}
+
+# /ip dns adlist add url=... ssl-verify=no (added only if the url is missing)
+ADLISTS = [
+    "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+    "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt",
+]
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "dns" / "vpn.txt"
@@ -74,8 +90,15 @@ def render(domains: list[str]) -> str:
         "# a FWD entry with the same name is taken over, other entries are kept.",
         f':if ([:len [/ip dns forwarders find where name="{FORWARDER}"]] = 0) do={{ '
         f':error "proxy_rules: DNS forwarder {FORWARDER} not found" }}',
-        f'{ds} set [find where type=FWD comment~"^proxy_rules: "] comment="{STALE_COMMENT}"',
+        "/ip dns set " + " ".join(f"{k}={v}" for k, v in DNS_SETTINGS.items()),
     ]
+    for url in ADLISTS:
+        lines.append(
+            f':if ([:len [/ip dns adlist find where url="{url}"]] = 0) do={{ '
+            f'/ip dns adlist add url="{url}" ssl-verify=no }}'
+        )
+    lines.append(
+        f'{ds} set [find where type=FWD comment~"^proxy_rules: "] comment="{STALE_COMMENT}"')
     for d in domains:
         lines.append(
             f':if ([:len [{ds} find where type=FWD name="{d}"]] = 0) do={{ '
