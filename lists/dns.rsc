@@ -2,6 +2,9 @@
 # Entries with comment prefix "proxy_rules: " are owned by this script;
 # a FWD entry with the same name is taken over, other entries are kept.
 :if ([:len [/ip dns forwarders find where name="VPN"]] = 0) do={ /ip dns forwarders add name=VPN dns-servers="1.1.1.1,8.8.8.8" doh-servers="https://dns.google/dns-query,https://1.1.1.1/dns-query" verify-doh-cert="no" }
+:if ([:len [/routing table find where name="VPN"]] = 0) do={ /routing table add name=VPN fib }
+:if ([:len [/routing rule find dst-address=1.1.1.1/32 table=VPN]] = 0) do={ /routing rule add action=lookup disabled=no dst-address=1.1.1.1/32 table=VPN }
+:if ([:len [/routing rule find dst-address=8.8.8.8/32 table=VPN]] = 0) do={ /routing rule add action=lookup disabled=no dst-address=8.8.8.8/32 table=VPN }
 /ip dns set address-list-extra-time=1d allow-remote-requests=yes cache-size=24576KiB
 :if ([:len [/ip dns adlist find where url="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"]] = 0) do={ /ip dns adlist add url="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" ssl-verify=no }
 :if ([:len [/ip dns adlist find where url="https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt"]] = 0) do={ /ip dns adlist add url="https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt" ssl-verify=no }

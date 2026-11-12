@@ -52,6 +52,17 @@ FWD-запись с тем же именем, что в `dns/vpn.txt`, пере�
 Если на роутере нет forwarder'а `VPN`, `dns.rsc` создаёт его (`1.1.1.1`, `8.8.8.8`,
 DoH Google и Cloudflare); существующий forwarder не меняется.
 
+Запросы самого роутера к DNS-серверам forwarder'а идут через таблицу маршрутов `VPN`:
+
+```routeros
+/routing rule add action=lookup dst-address=1.1.1.1/32 table=VPN
+/routing rule add action=lookup dst-address=8.8.8.8/32 table=VPN
+```
+
+Правило добавляется, только если такого ещё нет. Если таблицы `VPN` нет, она
+создаётся пустой (`fib`): с `action=lookup` трафик тогда идёт по основной таблице,
+пока в `VPN` не появится маршрут в туннель.
+
 Кроме доменов, `dns.rsc` задаёт общие настройки DNS и блок-листы рекламы
 (константы `DNS_SETTINGS` и `ADLISTS` в `scripts/build_dns_rsc.py`):
 

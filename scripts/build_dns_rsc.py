@@ -2,7 +2,8 @@
 """Build lists/dns.rsc from dns/vpn.txt.
 
 It creates DNS forwarder VPN if the router has none (an existing one is left
-as is), applies /ip dns settings and adds ad-block lists (/ip dns adlist)
+as is), routes the forwarder's DNS servers through routing table VPN
+(/routing rule, added only if missing), applies /ip dns settings and adds ad-block lists (/ip dns adlist)
 that are not on the router yet; adlists are never removed by this script.
 
 Every domain becomes a MikroTik static DNS entry:
@@ -30,6 +31,12 @@ FORWARDER_SETTINGS = {
     "doh-servers": "https://dns.google/dns-query,https://1.1.1.1/dns-query",
     "verify-doh-cert": "no",
 }
+
+# /routing rule add action=lookup dst-address=... table=VPN (only if missing).
+# Routing table VPN is created if missing; with action=lookup an empty table
+# falls back to main, so nothing breaks before the VPN route exists.
+ROUTING_TABLE = "VPN"
+ROUTED_DNS = ["1.1.1.1/32", "8.8.8.8/32"]
 
 # /ip dns set ...
 DNS_SETTINGS = {
@@ -99,6 +106,13 @@ def render(domains: list[str]) -> str:
         f':if ([:len [/ip dns forwarders find where name="{FORWARDER}"]] = 0) do={{ '
         f'/ip dns forwarders add name={FORWARDER} '
         + " ".join(f'{k}="{v}"' for k, v in FORWARDER_SETTINGS.items()) + " }",
+        f':if ([:len [/routing table find where name="{ROUTING_TABLE}"]] = 0) do={{ '
+        f'/routing table add name={ROUTING_TABLE} fib }}',
+    ] + [
+        f':if ([:len [/routing rule find dst-address={net} table={ROUTING_TABLE}]] = 0) do={{ '
+        f'/routing rule add action=lookup disabled=no dst-address={net} table={ROUTING_TABLE} }}'
+        for net in ROUTED_DNS
+    ] + [
         "/ip dns set " + " ".join(f"{k}={v}" for k, v in DNS_SETTINGS.items()),
     ]
     for url in ADLISTS:
