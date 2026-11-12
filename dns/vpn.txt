@@ -19,6 +19,7 @@ githubcopilot.com
 nousresearch.com
 oaistatic.com
 openai.com
+livekit.cloud  # голосовой режим ChatGPT (LiveKit), IP меняются
 www.wevolver.com
 b-cdn.net
 npmjs.org
