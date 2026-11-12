@@ -22,7 +22,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Download address lists
+      - name: Build address-list VPN
+        id: build
+        continue-on-error: true
         run: python3 scripts/update_ip_lists.py
 
       - name: Commit changes
@@ -36,3 +38,9 @@ jobs:
           git config user.email "41898+github-actions[bot]@users.noreply.github.com"
           git commit -m "Update IP lists ($(date -u +%Y-%m-%d))"
           git push
+
+      - name: Fail if a source could not be updated
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "Some sources failed; their previous lists were kept. See the build step log."
+          exit 1
