@@ -74,7 +74,6 @@ SOURCES = [
             "cdn.oaistatic.com",
             "files.oaiusercontent.com",
             "sora.com",
-            "chatgpt.livekit.cloud",
         ],
     ),
     Source(
