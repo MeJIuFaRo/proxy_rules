@@ -1,0 +1,58 @@
+name: Update MikroTik rules
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # daily, 03:17 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - dns/**
+      - scripts/**
+      - .github/workflows/update-ip-lists.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-ip-lists
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build address-list VPN
+        id: build
+        continue-on-error: true
+        run: python3 scripts/update_ip_lists.py
+
+      - name: Build DNS rules
+        id: dns
+        continue-on-error: true
+        run: python3 scripts/build_dns_rsc.py
+
+      - name: Commit changes
+        run: |
+          git add lists/
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update MikroTik rules ($(date -u +%Y-%m-%d))"
+          git push
+
+      - name: Fail if a step could not be completed
+        if: steps.build.outcome == 'failure' || steps.dns.outcome == 'failure'
+        run: |
+          echo "IP sources: ${{ steps.build.outcome }}, DNS rules: ${{ steps.dns.outcome }}."
+          echo "Previous files were kept for failed parts; see the step logs."
+          exit 1
