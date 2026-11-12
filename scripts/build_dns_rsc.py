@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Build lists/dns.rsc from dns/vpn.txt.
 
-It also applies /ip dns settings and adds ad-block lists (/ip dns adlist)
+It creates DNS forwarder VPN if the router has none (an existing one is left
+as is), routes the forwarder's DNS servers through routing table VPN
+(/routing rule, added only if missing), applies /ip dns settings and adds ad-block lists (/ip dns adlist)
 that are not on the router yet; adlists are never removed by this script.
 
 Every domain becomes a MikroTik static DNS entry:
@@ -22,6 +24,19 @@ FORWARDER = "VPN"
 ADDRESS_LIST = "VPN"
 COMMENT = "proxy_rules: dns"
 STALE_COMMENT = "proxy_rules: stale"
+
+# /ip dns forwarders add name=VPN ... (only if missing)
+FORWARDER_SETTINGS = {
+    "dns-servers": "1.1.1.1,8.8.8.8",
+    "doh-servers": "https://dns.google/dns-query,https://1.1.1.1/dns-query",
+    "verify-doh-cert": "no",
+}
+
+# /routing rule add action=lookup dst-address=... table=VPN (only if missing).
+# Routing table VPN is created if missing; with action=lookup an empty table
+# falls back to main, so nothing breaks before the VPN route exists.
+ROUTING_TABLE = "VPN"
+ROUTED_DNS = ["1.1.1.1/32", "8.8.8.8/32", "8.8.4.4/32"]  # 8.8.4.4: dns.google (DoH)
 
 # /ip dns set ...
 DNS_SETTINGS = {
@@ -89,7 +104,15 @@ def render(domains: list[str]) -> str:
         "# Entries with comment prefix \"proxy_rules: \" are owned by this script;",
         "# a FWD entry with the same name is taken over, other entries are kept.",
         f':if ([:len [/ip dns forwarders find where name="{FORWARDER}"]] = 0) do={{ '
-        f':error "proxy_rules: DNS forwarder {FORWARDER} not found" }}',
+        f'/ip dns forwarders add name={FORWARDER} '
+        + " ".join(f'{k}="{v}"' for k, v in FORWARDER_SETTINGS.items()) + " }",
+        f':if ([:len [/routing table find where name="{ROUTING_TABLE}"]] = 0) do={{ '
+        f'/routing table add name={ROUTING_TABLE} fib }}',
+    ] + [
+        f':if ([:len [/routing rule find dst-address={net} table={ROUTING_TABLE}]] = 0) do={{ '
+        f'/routing rule add action=lookup disabled=no dst-address={net} table={ROUTING_TABLE} }}'
+        for net in ROUTED_DNS
+    ] + [
         "/ip dns set " + " ".join(f"{k}={v}" for k, v in DNS_SETTINGS.items()),
     ]
     for url in ADLISTS:

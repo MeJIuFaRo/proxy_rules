@@ -49,7 +49,20 @@ FWD-запись с тем же именем, что в `dns/vpn.txt`, пере�
 репозитория: ей выставляются `forward-to=VPN`, `address-list=VPN`, комментарий.
 Если удалить домен из `dns/vpn.txt`, его запись будет удалена с роутера.
 
-`dns.rsc` ничего не меняет, если на роутере нет forwarder'а `VPN`.
+Если на роутере нет forwarder'а `VPN`, `dns.rsc` создаёт его (`1.1.1.1`, `8.8.8.8`,
+DoH Google и Cloudflare); существующий forwarder не меняется.
+
+Запросы самого роутера к DNS-серверам forwarder'а идут через таблицу маршрутов `VPN`:
+
+```routeros
+/routing rule add action=lookup dst-address=1.1.1.1/32 table=VPN
+/routing rule add action=lookup dst-address=8.8.8.8/32 table=VPN
+/routing rule add action=lookup dst-address=8.8.4.4/32 table=VPN
+```
+
+Правило добавляется, только если такого ещё нет. Если таблицы `VPN` нет, она
+создаётся пустой (`fib`): с `action=lookup` трафик тогда идёт по основной таблице,
+пока в `VPN` не появится маршрут в туннель.
 
 Кроме доменов, `dns.rsc` задаёт общие настройки DNS и блок-листы рекламы
 (константы `DNS_SETTINGS` и `ADLISTS` в `scripts/build_dns_rsc.py`):
@@ -66,15 +79,17 @@ Adlist добавляется, только если такого URL на ро�
 
 ## Установка на MikroTik
 
-1. Создайте fine-grained токен GitHub: только репозиторий `MeJIuFaRo/proxy_rules`,
-   право **Contents: Read-only**. Токен хранится в конфигурации роутера открытым текстом.
-2. В `mikrotik/proxy-rules-update.rsc` замените `<GITHUB_TOKEN>` и импортируйте файл
-   на роутер (или вставьте его содержимое в терминал). Он создаст скрипт
-   `proxy-rules-update` и ежедневное расписание на 07:00.
-3. Первый запуск вручную и проверка:
+Подходит любой MikroTik на RouterOS 7 с `/ip dns forwarders`. Токен не нужен:
+файлы скачиваются из публичного репозитория. Выполните в терминале роутера:
 
 ```routeros
-/system script run proxy-rules-update
+/tool fetch url="https://raw.githubusercontent.com/MeJIuFaRo/proxy_rules/main/mikrotik/proxy-rules-update.rsc" check-certificate=yes-without-crl dst-path=proxy-rules-update.rsc; /import file-name=proxy-rules-update.rsc
+```
+
+Установщик создаст скрипт `proxy-rules-update`, ежедневное расписание на 07:00
+и сразу выполнит первое обновление. Проверка:
+
+```routeros
 /log print where message~"proxy_rules"
 /ip firewall address-list print count-only where list=VPN
 /ip dns static print count-only where comment~"proxy_rules"
@@ -82,6 +97,24 @@ Adlist добавляется, только если такого URL на ро�
 
 Если скачивание или импорт файла не удались, в логе будет
 `update failed, previous rules kept`, а правила останутся прежними.
+
+Маршрутизацию address-list `VPN` в туннель (mangle, таблица маршрутов) скрипт
+не настраивает — она зависит от VPN-интерфейса конкретного роутера.
+
+### Проверка сертификата
+
+Скачанные `.rsc` выполняются как конфигурация роутера, поэтому `fetch` всегда
+проверяет TLS-сертификат GitHub: подменённый файл не будет принят.
+
+- RouterOS 7.21 и новее: встроенные корневые сертификаты доверены для `fetch`
+  по умолчанию, ничего делать не нужно.
+- RouterOS 7.19–7.20: один раз включите встроенные сертификаты:
+  `/certificate settings set builtin-trust-anchors=trusted`.
+- Более старые версии: импортируйте корневой сертификат, которым подписан
+  `raw.githubusercontent.com`, через `/certificate import` и пометьте его доверенным.
+
+Если сертификат не проверяется, установка остановится на первой команде
+с ошибкой и роутер не изменится.
 
 ## GitHub Actions
 
