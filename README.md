@@ -1,11 +1,27 @@
 # proxy_rules
 
-Списки IPv4 для MikroTik: адреса сервисов, которые должны идти через VPN.
+Правила для MikroTik: какой трафик идёт через VPN. Роутер раз в сутки скачивает
+два файла и импортирует их:
 
-## Address-list `VPN`
+| Файл | Что делает на роутере | Откуда берётся |
+|---|---|---|
+| `lists/vpn.rsc` | `/ip firewall address-list` `VPN` — IPv4-подсети сервисов | собирает GitHub Actions из публичных источников |
+| `lists/dns.rsc` | `/ip dns static type=FWD forward-to=VPN match-subdomain=yes address-list=VPN` | собирает GitHub Actions из `dns/vpn.txt`, который правится руками |
 
-GitHub Actions (`.github/workflows/update-ip-lists.yml`) каждый день в 03:17 UTC
-запускает `scripts/update_ip_lists.py` и коммитит изменения в `lists/`.
+Оба `.rsc` генерируются — не правьте их вручную.
+
+## Домены: `dns/vpn.txt`
+
+Один домен на строку, поддомены включаются автоматически. Чтобы добавить домен,
+допишите его в файл и закоммитьте в `main`: workflow соберёт `lists/dns.rsc`
+в течение пары минут, роутер подхватит его при следующем запуске.
+Строка с ошибкой останавливает сборку, прежний `dns.rsc` остаётся.
+
+На роутере для этих доменов запросы уходят на forwarder `VPN`
+(`/ip dns forwarders`), а полученные IP попадают в address-list `VPN`.
+Работает только для клиентов, которые используют DNS роутера (не DoH в браузере).
+
+## IP-подсети: `lists/vpn.rsc`
 
 | Источник | Откуда берутся адреса |
 |---|---|
@@ -15,53 +31,47 @@ GitHub Actions (`.github/workflows/update-ip-lists.yml`) каждый день �
 | ChatGPT | префиксы AS401864 (OpenAI) + текущие IP хостов ChatGPT/OpenAI |
 | Claude | [документация Anthropic](https://platform.claude.com/docs/en/api/ip-addresses) (входящие и исходящие IPv4, без «Phased out») + префиксы AS399358, AS400243, AS401551 + текущие IP хостов Claude |
 
-Хосты, которые резолвятся в /32, перечислены в `SOURCES` в скрипте. Большая часть
-ChatGPT стоит за Cloudflare и уже покрыта его диапазонами, поэтому в итоговый
-список попадают только адреса вне Cloudflare (например, голосовой режим на LiveKit).
-DNS резолвится с раннера GitHub в США; для anycast-адресов это не важно.
+Хосты, которые резолвятся в /32, перечислены в `SOURCES` в `scripts/update_ip_lists.py`.
+Сеть, уже покрытая источником выше по таблице, второй раз не добавляется.
+Если источник не скачался, используется его прежний `lists/<источник>.txt`.
 
-Файлы в `lists/`:
+## Как `.rsc` обновляют роутер
 
-- `<источник>.txt` — CIDR одного источника;
-- `vpn.txt` — общий список без дублей (сеть, уже покрытая предыдущим источником, пропускается);
-- `vpn.rsc` — скрипт RouterOS, синхронизирующий `/ip firewall address-list` `VPN`.
-
-Если источник не скачался, его прежний `.txt` остаётся и используется при сборке,
-а запуск workflow помечается как неудачный.
-
-### Как `vpn.rsc` обновляет список
-
-Скрипт трогает только записи с комментарием `proxy_rules: …`; добавленные вручную
-записи в `VPN` остаются. Порядок:
+Оба файла трогают только свои записи — с комментарием `proxy_rules: …`:
 
 1. все свои записи помечаются `proxy_rules: stale`;
-2. каждый адрес добавляется, а если он уже есть — с него снимается метка `stale`;
+2. каждая запись из файла добавляется, а если уже есть — с неё снимается метка;
 3. оставшиеся `stale` удаляются.
 
-Список не пустеет во время импорта, а дубль с ручной записью не прерывает импорт.
+Списки не пустеют во время импорта. Ручные записи не удаляются, но в `dns.rsc`
+FWD-запись с тем же именем, что в `dns/vpn.txt`, переходит под управление
+репозитория: ей выставляются `forward-to=VPN`, `address-list=VPN`, комментарий.
+Если удалить домен из `dns/vpn.txt`, его запись будет удалена с роутера.
 
-## Загрузка на MikroTik (приватный репозиторий)
+`dns.rsc` ничего не меняет, если на роутере нет forwarder'а `VPN`.
 
-`raw.githubusercontent.com` для приватного репозитория требует токен, поэтому файл
-берётся через GitHub API с fine-grained токеном: только этот репозиторий,
-право **Contents: Read-only**. Токен хранится в конфигурации роутера открытым текстом.
+## Установка на MikroTik
 
-```routeros
-/system script add name=vpn-list-update policy=ftp,read,write,test source={
-  /tool fetch url="https://api.github.com/repos/MeJIuFaRo/proxy_rules/contents/lists/vpn.rsc?ref=main" \
-    http-header-field="Authorization: Bearer <GITHUB_TOKEN>,Accept: application/vnd.github.raw,User-Agent: mikrotik" \
-    dst-path=vpn.rsc
-  :delay 2s
-  /import file-name=vpn.rsc
-}
-/system scheduler add name=vpn-list-update interval=1d start-time=07:00:00 on-event=vpn-list-update
-```
-
-Если `fetch` завершится ошибкой, скрипт остановится до `/import` и список не изменится.
-
-Записи из прежних списков `CLOUDFLARE` и `GOOGLE` этим скриптом не удаляются;
-уберите их вручную, если они больше не нужны:
+1. Создайте fine-grained токен GitHub: только репозиторий `MeJIuFaRo/proxy_rules`,
+   право **Contents: Read-only**. Токен хранится в конфигурации роутера открытым текстом.
+2. В `mikrotik/proxy-rules-update.rsc` замените `<GITHUB_TOKEN>` и импортируйте файл
+   на роутер (или вставьте его содержимое в терминал). Он создаст скрипт
+   `proxy-rules-update` и ежедневное расписание на 07:00.
+3. Первый запуск вручную и проверка:
 
 ```routeros
-/ip firewall address-list remove [find where list="CLOUDFLARE" or list="GOOGLE"]
+/system script run proxy-rules-update
+/log print where message~"proxy_rules"
+/ip firewall address-list print count-only where list=VPN
+/ip dns static print count-only where comment~"proxy_rules"
 ```
+
+Если скачивание или импорт файла не удались, в логе будет
+`update failed, previous rules kept`, а правила останутся прежними.
+
+## GitHub Actions
+
+`.github/workflows/update-ip-lists.yml` запускается каждый день в 03:17 UTC,
+вручную и при пуше в `main` изменений в `dns/` или `scripts/`. Запуск помечается
+неудачным, если какой-то источник или `dns/vpn.txt` не удалось обработать;
+успешные части при этом всё равно коммитятся.
