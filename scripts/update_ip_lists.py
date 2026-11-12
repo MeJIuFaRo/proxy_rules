@@ -6,7 +6,8 @@ Sources (in priority order):
   google     - https://www.gstatic.com/ipranges/goog.txt
   meta       - prefixes announced by Meta ASNs (RIPEstat)
   chatgpt    - OpenAI ASN prefixes + current IPs of ChatGPT hosts
-  claude     - Anthropic ASN prefixes + current IPs of Claude hosts
+  claude     - Anthropic documented ranges + ASN prefixes + current IPs
+               of Claude hosts
 
 Files written into lists/:
   <source>.txt - plain IPv4 CIDR list of one source
@@ -20,6 +21,7 @@ any source failed, after writing everything it could.
 import ipaddress
 import json
 import pathlib
+import re
 import socket
 import sys
 import urllib.parse
@@ -41,6 +43,7 @@ class Source:
     label: str         # comment on RouterOS entries
     urls: list[str] = field(default_factory=list)   # plain-text CIDR lists
     asns: list[int] = field(default_factory=list)   # announced prefixes
+    docs: list[str] = field(default_factory=list)   # Markdown pages with CIDRs
     hosts: list[str] = field(default_factory=list)  # resolved to /32
 
 
@@ -73,6 +76,7 @@ SOURCES = [
     Source(
         "claude",
         "Claude",
+        docs=["https://platform.claude.com/docs/en/api/ip-addresses.md"],
         asns=[399358, 400243, 401551],
         hosts=[
             "claude.ai",
@@ -120,6 +124,21 @@ def asn_prefixes(asn: int) -> set[Network]:
     return parse_ipv4(p["prefix"] for p in data["data"]["prefixes"])
 
 
+IPV4_CIDR = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}/\d{1,2}\b")
+PHASED_OUT = re.compile(r"^#+\s.*phased out", re.IGNORECASE | re.MULTILINE)
+
+
+def doc_prefixes(url: str) -> set[Network]:
+    # Inbound and outbound ranges; everything after "Phased out" is no longer used.
+    text = http_get(url)
+    match = PHASED_OUT.search(text)
+    current = text[: match.start()] if match else text
+    nets = parse_ipv4(IPV4_CIDR.findall(current))
+    if not nets:
+        raise RuntimeError(f"no IPv4 ranges in {url}")
+    return nets
+
+
 def resolve(host: str) -> set[Network]:
     infos = socket.getaddrinfo(host, 443, socket.AF_INET, socket.SOCK_STREAM)
     return {ipaddress.ip_network(info[4][0]) for info in infos}
@@ -129,6 +148,8 @@ def fetch(source: Source) -> list[Network]:
     nets: set[Network] = set()
     for url in source.urls:
         nets |= parse_ipv4(http_get(url).splitlines())
+    for url in source.docs:
+        nets |= doc_prefixes(url)
     for asn in source.asns:
         nets |= asn_prefixes(asn)
     for host in source.hosts:

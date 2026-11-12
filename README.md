@@ -13,7 +13,7 @@ GitHub Actions (`.github/workflows/update-ip-lists.yml`) каждый день �
 | Google | https://www.gstatic.com/ipranges/goog.txt |
 | Meta | префиксы, анонсируемые AS32934, AS63293, AS54115 (RIPEstat) |
 | ChatGPT | префиксы AS401864 (OpenAI) + текущие IP хостов ChatGPT/OpenAI |
-| Claude | префиксы AS399358, AS400243, AS401551 (Anthropic) + текущие IP хостов Claude |
+| Claude | [документация Anthropic](https://platform.claude.com/docs/en/api/ip-addresses) (входящие и исходящие IPv4, без «Phased out») + префиксы AS399358, AS400243, AS401551 + текущие IP хостов Claude |
 
 Хосты, которые резолвятся в /32, перечислены в `SOURCES` в скрипте. Большая часть
 ChatGPT стоит за Cloudflare и уже покрыта его диапазонами, поэтому в итоговый
