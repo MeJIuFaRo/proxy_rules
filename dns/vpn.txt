@@ -172,3 +172,20 @@ serv01001.xyz
 amazon.com
 media-amazon.com
 ssl-images-amazon.com
+
+# --- Discord ---
+discord.com
+discord.gg
+discordapp.com
+discordapp.net
+discord.media
+discordcdn.com
+discord.dev
+discord.new
+discord.gift
+discord.co
+dis.gd
+discordstatus.com
+discordactivities.com
+discordsays.com
+discordsez.com

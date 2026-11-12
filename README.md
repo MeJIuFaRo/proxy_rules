@@ -30,6 +30,7 @@
 | Meta | префиксы, анонсируемые AS32934, AS63293, AS54115 (RIPEstat) |
 | ChatGPT | префиксы AS401864 (OpenAI) + текущие IP хостов ChatGPT/OpenAI |
 | Claude | [документация Anthropic](https://platform.claude.com/docs/en/api/ip-addresses) (входящие и исходящие IPv4, без «Phased out») + префиксы AS399358, AS400243, AS401551 + текущие IP хостов Claude |
+| Discord | блоки адресов организации Discord (`ORG-DI90-RIPE`) в базе RIPE — голосовые и видеосерверы `66.22.192.0/18` |
 
 Хосты, которые резолвятся в /32, перечислены в `SOURCES` в `scripts/update_ip_lists.py`.
 Сеть, уже покрытая источником выше по таблице, второй раз не добавляется.

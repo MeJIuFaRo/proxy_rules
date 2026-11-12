@@ -8,6 +8,8 @@ Sources (in priority order):
   chatgpt    - OpenAI ASN prefixes + current IPs of ChatGPT hosts
   claude     - Anthropic documented ranges + ASN prefixes + current IPs
                of Claude hosts
+  discord    - address blocks registered to Discord in the RIPE database
+               (voice/video servers 66.22.192.0/18)
 
 Files written into lists/:
   <source>.txt - plain IPv4 CIDR list of one source
@@ -35,6 +37,7 @@ STALE_COMMENT = COMMENT_PREFIX + "stale"
 OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / "lists"
 USER_AGENT = "proxy-rules-updater"
 RIPESTAT_URL = "https://stat.ripe.net/data/announced-prefixes/data.json"
+RIPE_DB_SEARCH_URL = "https://rest.db.ripe.net/search.json"
 
 
 @dataclass
@@ -44,6 +47,7 @@ class Source:
     urls: list[str] = field(default_factory=list)   # plain-text CIDR lists
     asns: list[int] = field(default_factory=list)   # announced prefixes
     docs: list[str] = field(default_factory=list)   # Markdown pages with CIDRs
+    ripe_orgs: list[str] = field(default_factory=list)  # RIPE DB inetnums by org
     hosts: list[str] = field(default_factory=list)  # resolved to /32
 
 
@@ -90,6 +94,7 @@ SOURCES = [
             "claudeusercontent.com",
         ],
     ),
+    Source("discord", "Discord", ripe_orgs=["ORG-DI90-RIPE"]),
 ]
 
 Network = ipaddress.IPv4Network
@@ -139,6 +144,31 @@ def doc_prefixes(url: str) -> set[Network]:
     return nets
 
 
+def ripe_org_inetnums(org: str) -> set[Network]:
+    query = urllib.parse.urlencode({
+        "inverse-attribute": "org",
+        "query-string": org,
+        "type-filter": "inetnum",
+        "flags": "r",
+    })
+    req = urllib.request.Request(
+        f"{RIPE_DB_SEARCH_URL}?{query}",
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.load(resp)
+    nets: set[Network] = set()
+    for obj in data.get("objects", {}).get("object", []):
+        first, last = (
+            ipaddress.IPv4Address(part.strip())
+            for part in obj["primary-key"]["attribute"][0]["value"].split("-")
+        )
+        nets.update(ipaddress.summarize_address_range(first, last))
+    if not nets:
+        raise RuntimeError(f"RIPE DB: no inetnum objects for {org}")
+    return nets
+
+
 def resolve(host: str) -> set[Network]:
     infos = socket.getaddrinfo(host, 443, socket.AF_INET, socket.SOCK_STREAM)
     return {ipaddress.ip_network(info[4][0]) for info in infos}
@@ -152,6 +182,8 @@ def fetch(source: Source) -> list[Network]:
         nets |= doc_prefixes(url)
     for asn in source.asns:
         nets |= asn_prefixes(asn)
+    for org in source.ripe_orgs:
+        nets |= ripe_org_inetnums(org)
     for host in source.hosts:
         nets |= resolve(host)
     return list(ipaddress.collapse_addresses(nets))

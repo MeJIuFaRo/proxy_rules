@@ -235,4 +235,6 @@
 :do { /ip firewall address-list add list=VPN address=153.61.208.0/20 comment="proxy_rules: Claude" } on-error={ /ip firewall address-list set [find list=VPN address=153.61.208.0/20 comment="proxy_rules: stale"] comment="proxy_rules: Claude" }
 :do { /ip firewall address-list add list=VPN address=153.61.224.0/22 comment="proxy_rules: Claude" } on-error={ /ip firewall address-list set [find list=VPN address=153.61.224.0/22 comment="proxy_rules: stale"] comment="proxy_rules: Claude" }
 :do { /ip firewall address-list add list=VPN address=160.79.104.0/21 comment="proxy_rules: Claude" } on-error={ /ip firewall address-list set [find list=VPN address=160.79.104.0/21 comment="proxy_rules: stale"] comment="proxy_rules: Claude" }
+:do { /ip firewall address-list add list=VPN address=66.22.192.0/18 comment="proxy_rules: Discord" } on-error={ /ip firewall address-list set [find list=VPN address=66.22.192.0/18 comment="proxy_rules: stale"] comment="proxy_rules: Discord" }
+:do { /ip firewall address-list add list=VPN address=195.62.89.0/24 comment="proxy_rules: Discord" } on-error={ /ip firewall address-list set [find list=VPN address=195.62.89.0/24 comment="proxy_rules: stale"] comment="proxy_rules: Discord" }
 /ip firewall address-list remove [find where list="VPN" comment="proxy_rules: stale"]
