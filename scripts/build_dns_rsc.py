@@ -12,7 +12,8 @@ Every domain becomes a MikroTik static DNS entry:
 
 The generated script syncs /ip dns static: entries with comment prefix
 "proxy_rules: " belong to this repository; an existing FWD entry with the
-same name is taken over (its settings are replaced); other entries are kept.
+same name is taken over (its settings are replaced, extra entries with that
+name are removed); other entries are kept.
 
 Exits with code 1 and writes nothing if dns/vpn.txt has an invalid line.
 """
@@ -120,13 +121,20 @@ def render(domains: list[str]) -> str:
             f':if ([:len [/ip dns adlist find where url="{url}"]] = 0) do={{ '
             f'/ip dns adlist add url="{url}" ssl-verify=no }}'
         )
+    # RouterOS rejects two identical static entries ("entry already exists"),
+    # so own entries are marked stale one by one and an exact duplicate of an
+    # already-marked entry is removed instead.
     lines.append(
-        f'{ds} set [find where type=FWD comment~"^proxy_rules: "] comment="{STALE_COMMENT}"')
+        f':foreach i in=[{ds} find where type=FWD comment~"^proxy_rules: "] do={{ '
+        f':do {{ {ds} set $i comment="{STALE_COMMENT}" }} on-error={{ {ds} remove $i }} }}')
+    # One entry per listed name: the first is taken over, extra duplicates
+    # with the same name are removed.
     for d in domains:
         lines.append(
-            f':if ([:len [{ds} find where type=FWD name="{d}"]] = 0) do={{ '
-            f'{ds} add name="{d}" {params} }} else={{ '
-            f'{ds} set [find where type=FWD name="{d}"] {params} }}'
+            f'{{ :local ids [{ds} find where type=FWD name="{d}"]; '
+            f':if ([:len $ids] = 0) do={{ {ds} add name="{d}" {params} }} else={{ '
+            f':foreach j in=[:pick $ids 1 [:len $ids]] do={{ {ds} remove $j }}; '
+            f'{ds} set [:pick $ids 0] {params} }} }}'
         )
     lines.append(f'{ds} remove [find where type=FWD comment="{STALE_COMMENT}"]')
     return "\n".join(lines) + "\n"
