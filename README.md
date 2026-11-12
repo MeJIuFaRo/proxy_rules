@@ -57,6 +57,7 @@ DoH Google и Cloudflare); существующий forwarder не меняет�
 ```routeros
 /routing rule add action=lookup dst-address=1.1.1.1/32 table=VPN
 /routing rule add action=lookup dst-address=8.8.8.8/32 table=VPN
+/routing rule add action=lookup dst-address=8.8.4.4/32 table=VPN
 ```
 
 Правило добавляется, только если такого ещё нет. Если таблицы `VPN` нет, она

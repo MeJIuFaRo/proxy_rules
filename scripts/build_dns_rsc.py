@@ -36,7 +36,7 @@ FORWARDER_SETTINGS = {
 # Routing table VPN is created if missing; with action=lookup an empty table
 # falls back to main, so nothing breaks before the VPN route exists.
 ROUTING_TABLE = "VPN"
-ROUTED_DNS = ["1.1.1.1/32", "8.8.8.8/32"]
+ROUTED_DNS = ["1.1.1.1/32", "8.8.8.8/32", "8.8.4.4/32"]  # 8.8.4.4: dns.google (DoH)
 
 # /ip dns set ...
 DNS_SETTINGS = {
