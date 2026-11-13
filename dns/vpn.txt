@@ -143,6 +143,7 @@ voidboost.in
 gamestatus.info
 rutor.info
 netpilot.io
+openappsec.io
 digiboy.ir
 digitalcitizen.life
 ig.me
