@@ -53,6 +53,12 @@ IP-подсети из `lists/vpn.rsc` работают независимо о�
 | ChatGPT | префиксы AS401864 (OpenAI) + текущие IP хостов ChatGPT/OpenAI |
 | Claude | [документация Anthropic](https://platform.claude.com/docs/en/api/ip-addresses) (входящие и исходящие IPv4, без «Phased out») + префиксы AS399358, AS400243, AS401551 + текущие IP хостов Claude |
 | Discord | блоки адресов организации Discord (`ORG-DI90-RIPE`) в базе RIPE — голосовые и видеосерверы `66.22.192.0/18` |
+| Ubiquiti / UniFi | IPv4-блоки Ubiquiti Latvia (`ORG-US144-RIPE`) и Ubiquiti Sweden (`ORG-USA20-RIPE`) в базе RIPE, без резолвинга доменов |
+
+Сети Ubiquiti сохраняются в `lists/unifi.txt` и входят в общие `vpn.txt` и
+`vpn.rsc`. Это выделенные компаниям диапазоны, а не полный список адресов облака
+UniFi. IPv6 не включается. Домены Ubiquiti, UniFi и UISP перечислены отдельно
+в `dns/vpn.txt`; GitHub Actions собирает из них статичные DNS-правила в `lists/dns.rsc`.
 
 Хосты, которые резолвятся в /32, перечислены в `SOURCES` в `scripts/update_ip_lists.py`.
 Сеть, уже покрытая источником выше по таблице, второй раз не добавляется.
