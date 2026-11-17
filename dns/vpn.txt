@@ -99,6 +99,7 @@ uwn.com
 wifiman.com
 
 # --- Прочее ---
+safing.io
 exa.ai
 glama.ai
 sider.ai
