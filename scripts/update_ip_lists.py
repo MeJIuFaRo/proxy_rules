@@ -11,6 +11,7 @@ Sources (in priority order):
   discord    - address blocks registered to Discord in the RIPE database
                (voice/video servers 66.22.192.0/18)
   unifi      - IPv4 blocks registered to Ubiquiti Latvia and Sweden in RIPE
+  nintendo   - Nintendo of America ASN prefixes + European RIPE allocations
 
 Files written into lists/:
   <source>.txt - plain IPv4 CIDR list of one source
@@ -96,6 +97,12 @@ SOURCES = [
     ),
     Source("discord", "Discord", ripe_orgs=["ORG-DI90-RIPE"]),
     Source("unifi", "Ubiquiti / UniFi", ripe_orgs=["ORG-US144-RIPE", "ORG-USA20-RIPE"]),
+    Source(
+        "nintendo",
+        "Nintendo",
+        asns=[11278],
+        ripe_orgs=["ORG-NOEG1-RIPE", "ORG-NERA4-RIPE"],
+    ),
 ]
 
 Network = ipaddress.IPv4Network
