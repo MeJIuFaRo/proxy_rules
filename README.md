@@ -56,19 +56,6 @@ IP-подсети из `lists/vpn.rsc` работают независимо о�
 | Ubiquiti / UniFi | IPv4-блоки Ubiquiti Latvia (`ORG-US144-RIPE`) и Ubiquiti Sweden (`ORG-USA20-RIPE`) в базе RIPE, без резолвинга доменов |
 | Nintendo | IPv4-префиксы AS11278 Nintendo of America (RIPEstat) + диапазоны Nintendo of Europe (`ORG-NOEG1-RIPE`) и Nintendo European Research and Development (`ORG-NERA4-RIPE`) из RIPE Database |
 
-Сети Ubiquiti сохраняются в `lists/unifi.txt` и входят в общие `vpn.txt` и
-`vpn.rsc`. Это выделенные компаниям диапазоны, а не полный список адресов облака
-UniFi. IPv6 не включается. Домены Ubiquiti, UniFi и UISP перечислены отдельно
-в `dns/vpn.txt`; GitHub Actions собирает из них статичные DNS-правила в `lists/dns.rsc`.
-
-Сети Nintendo ежедневно собираются в `lists/nintendo.txt` и включаются в общие
-`vpn.txt` и `vpn.rsc`, без IPv6 и резолвинга доменов. Диапазоны компании могут
-обслуживать офисы и разработку; это не полный перечень серверов Switch/eShop.
-Домены Nintendo единоразово объединены с
-[v2fly](https://github.com/v2fly/domain-list-community/blob/master/data/nintendo)
-в `dns/vpn.txt` (включая региональные сайты и игровые бренды). Автоматической
-синхронизации доменов с v2fly нет.
-
 Хосты, которые резолвятся в /32, перечислены в `SOURCES` в `scripts/update_ip_lists.py`.
 Сеть, уже покрытая источником выше по таблице, второй раз не добавляется.
 Если источник не скачался, используется его прежний `lists/<источник>.txt`.
