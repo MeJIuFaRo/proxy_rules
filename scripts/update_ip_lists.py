@@ -12,6 +12,7 @@ Sources (in priority order):
                (voice/video servers 66.22.192.0/18)
   unifi      - IPv4 blocks registered to Ubiquiti Latvia and Sweden in RIPE
   nintendo   - Nintendo of America ASN prefixes + European RIPE allocations
+  telegram   - official Telegram IPv4 CIDR list
 
 Files written into lists/:
   <source>.txt - plain IPv4 CIDR list of one source
@@ -103,6 +104,7 @@ SOURCES = [
         asns=[11278],
         ripe_orgs=["ORG-NOEG1-RIPE", "ORG-NERA4-RIPE"],
     ),
+    Source("telegram", "Telegram", urls=["https://core.telegram.org/resources/cidr.txt"]),
 ]
 
 Network = ipaddress.IPv4Network
