@@ -53,7 +53,7 @@ IP-подсети из `lists/vpn.rsc` работают независимо о�
 | ChatGPT | префиксы AS401864 (OpenAI) + текущие IP хостов ChatGPT/OpenAI |
 | Claude | [документация Anthropic](https://platform.claude.com/docs/en/api/ip-addresses) (входящие и исходящие IPv4, без «Phased out») + префиксы AS399358, AS400243, AS401551 + текущие IP хостов Claude |
 | Discord | блоки адресов организации Discord (`ORG-DI90-RIPE`) в базе RIPE — голосовые и видеосерверы `66.22.192.0/18` |
-| Ubiquiti / UniFi | IPv4-блоки Ubiquiti Latvia (`ORG-US144-RIPE`) и Ubiquiti Sweden (`ORG-USA20-RIPE`) в базе RIPE, без резолвинга доменов |
+| Ubiquiti / UniFi | IPv4-блоки Ubiquiti Latvia (`ORG-US144-RIPE`) и Ubiquiti Sweden (`ORG-USA20-RIPE`) в базе RIPE, домены в статичном списке [vpn.txt](https://github.com/MeJIuFaRo/proxy_rules/blob/main/dns/vpn.txt) |
 | Nintendo | IPv4-префиксы AS11278 Nintendo of America (RIPEstat) + диапазоны Nintendo of Europe (`ORG-NOEG1-RIPE`) и Nintendo European Research and Development (`ORG-NERA4-RIPE`) из RIPE Database |
 | Telegram | IPv4-подсети из [официального списка Telegram](https://core.telegram.org/resources/cidr.txt) |
 
