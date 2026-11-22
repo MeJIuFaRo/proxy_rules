@@ -29,6 +29,8 @@ import pathlib
 import re
 import socket
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
@@ -110,10 +112,30 @@ SOURCES = [
 Network = ipaddress.IPv4Network
 
 
+def read_request(req: urllib.request.Request) -> bytes:
+    def read() -> bytes:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            return resp.read()
+
+    for delay in (1, 2):
+        try:
+            return read()
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (408, 429, 500, 502, 503, 504):
+                raise
+            exc.close()
+        except urllib.error.URLError as exc:
+            if not isinstance(exc.reason, TimeoutError):
+                raise
+        except TimeoutError:
+            pass
+        time.sleep(delay)
+    return read()
+
+
 def http_get(url: str) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        return resp.read().decode("utf-8", errors="replace")
+    return read_request(req).decode("utf-8", errors="replace")
 
 
 def parse_ipv4(lines) -> set[Network]:
@@ -165,8 +187,7 @@ def ripe_org_inetnums(org: str) -> set[Network]:
         f"{RIPE_DB_SEARCH_URL}?{query}",
         headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = json.load(resp)
+    data = json.loads(read_request(req))
     nets: set[Network] = set()
     for obj in data.get("objects", {}).get("object", []):
         first, last = (
