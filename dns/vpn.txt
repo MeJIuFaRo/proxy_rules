@@ -99,6 +99,8 @@ uwn.com
 wifiman.com
 
 # --- Прочее ---
+tailscale.com
+sanity.io
 fluffleinfra.net
 safing.io
 exa.ai
