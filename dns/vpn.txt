@@ -99,6 +99,7 @@ uwn.com
 wifiman.com
 
 # --- Прочее ---
+fluffleinfra.net
 safing.io
 exa.ai
 glama.ai
