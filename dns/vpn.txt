@@ -99,6 +99,7 @@ uwn.com
 wifiman.com
 
 # --- Прочее ---
+globalping.io
 tailscale.com
 sanity.io
 fluffleinfra.net
