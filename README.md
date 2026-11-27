@@ -133,6 +133,15 @@ Adlist добавляется, только если такого URL на ро�
 правило для входящего трафика из LAN выбирает пакеты по `chain=prerouting` и
 `dst-address-list=VPN` и помечает их действием `mark-routing` с `new-routing-mark=VPN`.
 
+**Если включён FastTrack**, исключите из него соединения клиентов LAN к адресам из списка
+`VPN` в обоих направлениях. FastTrack использует таблицу `main`, поэтому ускоренные
+пакеты могут уйти через обычный шлюз в обход туннеля.
+
+Например, в `prerouting` перед правилом `mark-routing` пометьте новые соединения из LAN
+к `dst-address-list=VPN` действием `mark-connection` с `new-connection-mark=vpn_conn`
+и `passthrough=yes`. В правиле `fasttrack-connection` исключите метку `vpn_conn`.
+Метка соединения распространяется и на ответные пакеты.
+
 ### Установка скрипта
 
 Подходит любой MikroTik на RouterOS 7 с `/ip dns forwarders`. Токен не нужен:
